@@ -1,0 +1,82 @@
+# ==============================
+#   🌿 Mobile (React Native / Expo)
+# ==============================
+.expo/
+.expo-shared/
+node_modules/
+web-build/
+dist/
+build/
+ios/
+android/
+android-build/
+ios-build/
+*.keystore
+*.jks
+*.apk
+*.aab
+
+# Fast refresh cache
+.expo/*
+.expo-shared/*
+
+# OS / Editor
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Expo settings
+package-lock.json
+yarn.lock
+
+# RN Bundler
+metro-cache/
+cache/
+tmp/
+
+# Images cache
+app/.expo/
+app/assets/*.tmp
+
+
+# ==============================
+#   🌿 Server (Node.js / Express)
+# ==============================
+server/node_modules/
+server/dist/
+server/build/
+server/tmp/
+
+# Environment variables (절대 공개 금지)
+.env
+.env.local
+.env.development
+.env.production
+
+# Database Dumps
+dump/
+*.bson
+*.json
+
+# PM2 / PID / Log
+*.pid
+*.sock
+*.log
+
+# ==============================
+#   🌿 Common
+# ==============================
+coverage/
+cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo project settings
+*.expo
+*.expo-shared
+
+
