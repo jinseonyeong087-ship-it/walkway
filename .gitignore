@@ -59,7 +59,7 @@ server/tmp/
 # Database Dumps
 dump/
 *.bson
-*.json
+
 
 # PM2 / PID / Log
 *.pid

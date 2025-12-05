@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "WalkWay",
+    "slug": "walkway",
+    "scheme": "walkway",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF",
+        "permissions": [
+          "CAMERA",
+          "READ_EXTERNAL_STORAGE",
+          "WRITE_EXTERNAL_STORAGE",
+          "ACTIVITY_RECOGNITION",
+          "BODY_SENSORS",
+          "CAMERA",
+          "READ_EXTERNAL_STORAGE",
+          "WRITE_EXTERNAL_STORAGE",
+          "ACTIVITY_RECOGNITION",
+          "BODY_SENSORS"
+        ]
+      },
+      "package": "com.xkak95.walkway"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "EXPO_PUBLIC_GOOGLE_MAPS_KEY": "AIzaSyC4cMB2STkcl1KIt4gpWw6Nx1bJEWLPROE"
+    }
+  }
+}
