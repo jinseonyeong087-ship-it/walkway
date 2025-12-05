@@ -29,7 +29,6 @@ Thumbs.db
 *.log
 
 # Expo settings
-package-lock.json
 yarn.lock
 
 # RN Bundler
