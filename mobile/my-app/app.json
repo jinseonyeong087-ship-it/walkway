@@ -13,32 +13,43 @@
       "backgroundColor": "#FFFFFF"
     },
     "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "산책 경로 기록을 위해 위치 정보가 필요합니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드에서도 정확한 산책 기록을 위해 위치 사용이 필요합니다."
+      },
+      "android": {
+        "package": "com.xkak95.walkway",
         "permissions": [
           "CAMERA",
           "READ_EXTERNAL_STORAGE",
           "WRITE_EXTERNAL_STORAGE",
           "ACTIVITY_RECOGNITION",
-          "BODY_SENSORS",
-          "CAMERA",
-          "READ_EXTERNAL_STORAGE",
-          "WRITE_EXTERNAL_STORAGE",
-          "ACTIVITY_RECOGNITION",
           "BODY_SENSORS"
-        ]
+        ],
+        "adaptiveIcon": {
+          "foregroundImage": "./assets/images/adaptive-icon.png",
+          "backgroundColor": "#FFFFFF"
+        }
       },
-      "package": "com.xkak95.walkway"
+      "plugins": [
+        "expo-router"
+      ],
+      "extra": {
+        "EXPO_PUBLIC_GOOGLE_MAPS_KEY": "AIzaSyC4cMB2STkcl1KIt4gpWw6Nx1bJEWLPROE",
+        "router": {},
+        "eas": {
+          "projectId": "be1993dc-60ef-4f2d-97af-3c8ae181baff"
+        }
+      }
     },
-    "plugins": [
-      "expo-router"
-    ],
     "extra": {
-      "EXPO_PUBLIC_GOOGLE_MAPS_KEY": "AIzaSyC4cMB2STkcl1KIt4gpWw6Nx1bJEWLPROE"
+      "eas": {
+        "projectId": "be1993dc-60ef-4f2d-97af-3c8ae181baff"
+      }
+    },
+    "android": {
+      "package": "com.xkak95.walkway"
     }
   }
 }

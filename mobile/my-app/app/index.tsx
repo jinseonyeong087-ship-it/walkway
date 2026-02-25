@@ -1,6 +1,6 @@
-export const unstable_settings = {
+/*export const unstable_settings = {
   initialRouteName: "home",
-};
+};*/
 import { useEffect } from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
@@ -53,6 +53,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 10,
     color: "#A1A1A1",
-    fontFamily: "NanumBarunGothicBold",
+    fontFamily: "NanumBarunBold",
   },
 });

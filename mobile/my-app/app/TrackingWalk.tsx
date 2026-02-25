@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppHeader from "../components/AppHeader";
 import Constants from "expo-constants";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const { width } = Dimensions.get("window");
 
 type LocationPoint = {
@@ -26,7 +28,7 @@ type LocationPoint = {
 };
 
 /* ============================================================
-    ⭐ Polyline Decode
+    Polyline Decode
 ============================================================ */
 function decodePolyline(encoded: string): LocationPoint[] {
   let points: LocationPoint[] = [];
@@ -36,14 +38,16 @@ function decodePolyline(encoded: string): LocationPoint[] {
     lng = 0;
 
   while (index < len) {
-    let b, shift = 0, result = 0;
+    let b,
+      shift = 0,
+      result = 0;
 
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
       shift += 5;
     } while (b >= 0x20);
-    let dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
+    let dlat = result & 1 ? ~(result >> 1) : result >> 1;
     lat += dlat;
 
     shift = 0;
@@ -53,7 +57,7 @@ function decodePolyline(encoded: string): LocationPoint[] {
       result |= (b & 0x1f) << shift;
       shift += 5;
     } while (b >= 0x20);
-    let dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
+    let dlng = result & 1 ? ~(result >> 1) : result >> 1;
     lng += dlng;
 
     points.push({
@@ -72,25 +76,19 @@ export default function TrackingWalk() {
   const insets = useSafeAreaInsets();
 
   /* ============================================================
-      ⭐ Params (로그는 딱 1번만 찍힘)
+      Params
   ============================================================ */
   const parkLat = params.lat ? Number(params.lat) : null;
   const parkLng = params.lng ? Number(params.lng) : null;
-
-  useEffect(() => {
-    console.log("👉 Received params:", params);
-    console.log("👉 parkLat:", parkLat, "parkLng:", parkLng);
-  }, []);
 
   const initialParkName =
     typeof params.parkName === "string" ? params.parkName : "산책";
   const [currentParkName] = useState(initialParkName);
 
   /* ============================================================
-      ⭐ 기존 상태
+      상태
   ============================================================ */
   const [userLocation, setUserLocation] = useState<LocationPoint | null>(null);
-  const [prevLoc, setPrevLoc] = useState<LocationPoint | null>(null);
 
   const [steps, setSteps] = useState(0);
   const [initialSteps, setInitialSteps] = useState<number | null>(null);
@@ -104,13 +102,10 @@ export default function TrackingWalk() {
   const locationWatcher = useRef<Location.LocationSubscription | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  /* ============================================================
-      ⭐ Polyline 저장
-  ============================================================ */
   const [routeCoords, setRouteCoords] = useState<LocationPoint[]>([]);
 
   /* ============================================================
-      ⭐ 시간 포맷
+      시간 포맷
   ============================================================ */
   const formatTime = () => {
     const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
@@ -120,7 +115,7 @@ export default function TrackingWalk() {
   };
 
   /* ============================================================
-      ⭐ OSRM 루팅 API (Google 제거)
+      OSRM 경로
   ============================================================ */
   const fetchRoute = async (origin: LocationPoint) => {
     if (!parkLat || !parkLng) return;
@@ -128,42 +123,31 @@ export default function TrackingWalk() {
     const url = `https://router.project-osrm.org/route/v1/foot/${origin.longitude},${origin.latitude};${parkLng},${parkLat}?overview=full&geometries=polyline`;
 
     try {
-      console.log("📌 OSRM 요청 URL:", url);
-
       const res = await fetch(url);
       const json = await res.json();
 
-      if (!json.routes || json.routes.length === 0) {
-        console.log("❌ OSRM: 경로 없음");
-        return;
-      }
+      if (!json.routes || json.routes.length === 0) return;
 
-      const encoded = json.routes[0].geometry;
-      const decoded = decodePolyline(encoded);
-
-      console.log("📌 경로 좌표 개수:", decoded.length);
-
+      const decoded = decodePolyline(json.routes[0].geometry);
       setRouteCoords(decoded);
     } catch (e) {
-      console.log("❌ OSRM 경로 오류:", e);
+      console.log("❌ OSRM 오류:", e);
     }
   };
 
   /* ============================================================
-      1) 걸음수 (디버그 로그 추가)
+      걸음수
   ============================================================ */
   useEffect(() => {
     let sub: any;
 
     (async () => {
-      const perm = await Pedometer.getPermissionsAsync();
+      await Pedometer.getPermissionsAsync();
 
       sub = Pedometer.watchStepCount((result) => {
         const raw = result.steps;
 
         unstable_batchedUpdates(() => {
-          console.log(`📌 rawSteps: ${raw}, initial: ${initialSteps}, lastRaw: ${lastRawSteps}`);
-
           if (initialSteps === null) {
             setInitialSteps(raw);
             setLastRawSteps(raw);
@@ -181,10 +165,7 @@ export default function TrackingWalk() {
           const diff = raw - initialSteps;
           setLastRawSteps(raw);
 
-          if (diff >= 0) {
-            console.log(`➡️ 계산된 steps: ${diff}`);
-            setSteps(diff);
-          }
+          if (diff >= 0) setSteps(diff);
         });
       });
     })();
@@ -193,12 +174,12 @@ export default function TrackingWalk() {
   }, [initialSteps]);
 
   /* ============================================================
-      2) 타이머
+      타이머
   ============================================================ */
   useEffect(() => {
     if (showEndModal) {
       if (timerRef.current) clearInterval(timerRef.current);
-      return;
+      return undefined;   // ⭐ 반드시 undefined 명시
     }
 
     timerRef.current = setInterval(() => {
@@ -211,7 +192,7 @@ export default function TrackingWalk() {
   }, [showEndModal]);
 
   /* ============================================================
-      3) GPS + OSRM 경로 요청
+      ⭐ GPS 빠른 로딩 적용
   ============================================================ */
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | undefined;
@@ -220,6 +201,7 @@ export default function TrackingWalk() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") return;
 
+      // ⚡ 매우 빠른 첫 좌표
       const fast = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Low,
       });
@@ -230,10 +212,6 @@ export default function TrackingWalk() {
       };
 
       setUserLocation(first);
-      setPrevLoc(first);
-
-      console.log("📌 최초 위치:", first);
-
       fetchRoute(first);
 
       mapRef.current?.animateToRegion({
@@ -242,22 +220,28 @@ export default function TrackingWalk() {
         longitudeDelta: 0.01,
       });
 
+      // ⏳ 1.5초 뒤 고정밀 재보정
       timeoutId = setTimeout(async () => {
         const high = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.BestForNavigation,
         });
 
-        const h = {
+        const better = {
           latitude: high.coords.latitude,
           longitude: high.coords.longitude,
         };
 
-        setUserLocation(h);
-        setPrevLoc(h);
+        setUserLocation(better);
+        fetchRoute(better);
 
-        fetchRoute(h);
+        mapRef.current?.animateToRegion({
+          ...better,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
       }, 1500);
 
+      // 위치 추적
       locationWatcher.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Balanced,
@@ -269,49 +253,32 @@ export default function TrackingWalk() {
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
           };
-
-          setPrevLoc(now);
           setUserLocation(now);
         }
       );
     })();
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (locationWatcher.current) locationWatcher.current.remove();
+      timeoutId && clearTimeout(timeoutId);
+      locationWatcher.current && locationWatcher.current.remove();
     };
   }, []);
 
   /* ============================================================
-      거리 계산
+      유저정보 확인 후 종료 버튼 행동
   ============================================================ */
-  const calcDistance = (a: LocationPoint, b: LocationPoint) => {
-    const R = 6371e3;
-    const toRad = (v: number) => (v * Math.PI) / 180;
-
-    const dLat = toRad(b.latitude - a.latitude);
-    const dLon = toRad(b.longitude - a.longitude);
-
-    const A =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(a.latitude)) *
-        Math.cos(toRad(b.latitude)) *
-        Math.sin(dLon / 2) ** 2;
-
-    return R * 2 * Math.atan2(Math.sqrt(A), Math.sqrt(1 - A));
-  };
-
-  if (!userLocation)
-    return <View style={{ flex: 1, backgroundColor: "#fff" }} />;
-
-  /* ============================================================
-      산책 종료 → walkend 이동
-  ============================================================ */
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setShowEndModal(false);
 
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (locationWatcher.current) locationWatcher.current.remove();
+    timerRef.current && clearInterval(timerRef.current);
+    locationWatcher.current && locationWatcher.current.remove();
+
+    const u = await AsyncStorage.getItem("healthUser");
+
+    if (!u) {
+      router.push("/home");
+      return;
+    }
 
     router.push({
       pathname: "/walkend",
@@ -324,6 +291,8 @@ export default function TrackingWalk() {
     });
   };
 
+  if (!userLocation) return <View style={{ flex: 1 }} />;
+
   /* ============================================================
       UI
   ============================================================ */
@@ -331,10 +300,7 @@ export default function TrackingWalk() {
     <View style={styles.container}>
       <AppHeader
         back={() => {
-          if (showEndModal) {
-            setShowEndModal(false);
-            return;
-          }
+          if (showEndModal) return setShowEndModal(false);
           router.back();
         }}
         home
@@ -360,10 +326,7 @@ export default function TrackingWalk() {
 
         {parkLat && parkLng && (
           <Marker
-            coordinate={{
-              latitude: parkLat,
-              longitude: parkLng,
-            }}
+            coordinate={{ latitude: parkLat, longitude: parkLng }}
             pinColor="red"
           />
         )}
@@ -434,7 +397,9 @@ export default function TrackingWalk() {
               </View>
 
               <View style={styles.modalItem}>
-                <Text style={styles.modalValue}>{Math.round(steps * 0.05)}</Text>
+                <Text style={styles.modalValue}>
+                  {Math.round(steps * 0.05)}
+                </Text>
                 <Text style={styles.modalLabel}>kcal</Text>
               </View>
 

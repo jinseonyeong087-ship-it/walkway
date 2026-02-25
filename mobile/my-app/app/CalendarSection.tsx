@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 50,
+    fontFamily: "NanumBarun",
   },
 
   monthRow: {
@@ -258,6 +259,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
+    fontFamily: "NanumBarun",
   },
 
   yearText: {
@@ -265,6 +267,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
     marginTop: 3,
+    fontFamily: "NanumBarun",
   },
 
   calendarCard: {
@@ -300,12 +303,14 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 16,
     color: "#6b6767ff",
+    fontFamily: "NanumBarun",
   },
 
   stepsText: {
     marginTop: 4,
     fontSize: 10,
     color: "#7C7C7C",
+    fontFamily: "NanumBarun",
   },
 
   freepikNote: {
@@ -314,5 +319,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontSize: 10,
     color: "#CFCFCF",
+    fontFamily: "NanumBarun",
   },
 });

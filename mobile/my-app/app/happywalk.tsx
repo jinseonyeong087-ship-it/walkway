@@ -52,8 +52,10 @@ export default function HappyWalk() {
     return Math.max(1, minutes);
   };
 
-  /* GPS */
+  /* ⭐ GPS 빠른 첫 좌표 + 고정밀 보정 */
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | undefined;
+
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -61,14 +63,50 @@ export default function HappyWalk() {
         return;
       }
 
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
+      // ⭐ 매우 빠른 최초 위치 (1초 미만)
+      const fast = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Low,
       });
 
+      const first = {
+        latitude: fast.coords.latitude,
+        longitude: fast.coords.longitude,
+      };
+
+      setUserLocation(first);
       setLoading(false);
+
+      // 지도 이동
+      mapRef.current?.animateToRegion({
+        ...first,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+
+      // ⭐ 1.5초 후 고정밀 위치로 교체
+      timeoutId = setTimeout(async () => {
+        const high = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.BestForNavigation,
+        });
+
+        const better = {
+          latitude: high.coords.latitude,
+          longitude: high.coords.longitude,
+        };
+
+        setUserLocation(better);
+
+        mapRef.current?.animateToRegion({
+          ...better,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }, 1500);
     })();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   /* 근처 공원 API */
@@ -99,7 +137,6 @@ export default function HappyWalk() {
     const park = nearParks[currentIndex];
     if (!park) return;
 
-    // 지도 카메라 이동
     mapRef.current?.animateCamera(
       {
         center: {
@@ -112,17 +149,17 @@ export default function HappyWalk() {
     );
   }, [currentIndex]);
 
-/* ⭐ 현재 보이는 카드 감지 함수 (타입 명시) */
-const onViewableItemsChanged = useRef(
-  (info: { viewableItems: ViewToken[] }) => {
-    if (info.viewableItems.length > 0) {
-      const index = info.viewableItems[0].index;
-      if (index !== null && index !== undefined) {
-        setCurrentIndex(index);
+  /* ⭐ 현재 보이는 카드 감지 함수 */
+  const onViewableItemsChanged = useRef(
+    (info: { viewableItems: ViewToken[] }) => {
+      if (info.viewableItems.length > 0) {
+        const index = info.viewableItems[0].index;
+        if (index !== null && index !== undefined) {
+          setCurrentIndex(index);
+        }
       }
     }
-  }
-);
+  );
 
   const viewabilityConfig = { viewAreaCoveragePercentThreshold: 60 };
 
@@ -153,7 +190,6 @@ const onViewableItemsChanged = useRef(
           longitudeDelta: 0.01,
         }}
       >
-        {/* 내 위치 (초록색 핀) */}
         <Marker coordinate={userLocation} pinColor="green" />
 
         {/* ⭐ 현재 보여지는 카드를 따라가는 공원 핀 */}
@@ -230,7 +266,6 @@ const onViewableItemsChanged = useRef(
               />
             </TouchableOpacity>
           )}
-          /* ⭐ 새로 추가된 부분 */
           onViewableItemsChanged={onViewableItemsChanged.current}
           viewabilityConfig={viewabilityConfig}
         />

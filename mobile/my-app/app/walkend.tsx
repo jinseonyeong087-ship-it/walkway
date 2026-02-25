@@ -18,10 +18,12 @@ import { Modal } from "react-native";
 
 import AppHeader from "../components/AppHeader";
 import { API_BASE } from "../constants/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";   // ⭐ 추가됨
 
 export default function WalkEnd() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();   // ⭐ 추가됨
 
   /* ============================================================
       ⭐ TrackingWalk → WalkEnd로 넘어온 실제 값 처리
@@ -63,7 +65,6 @@ export default function WalkEnd() {
   ============================================================ */
   const saveWalkLog = async () => {
     try {
-      // 🔥🔥🔥 UTC 변환 없이 “로컬 날짜 그대로” 저장
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
         2,
         "0"
@@ -163,6 +164,10 @@ export default function WalkEnd() {
   ============================================================ */
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
+
+      {/* ⭐⭐⭐ 상태바 높이만큼 흰색 배경 추가 */}
+      <View style={{ height: insets.top, backgroundColor: "#fff" }} />
+
       <AppHeader back={() => router.push("/TrackingWalk")} home />
 
       <KeyboardAwareScrollView
@@ -171,7 +176,7 @@ export default function WalkEnd() {
         keyboardOpeningTime={0}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
-          paddingTop: 120,
+          paddingTop: 60,     // 기존 120 → 40으로 안정적으로 수정
           paddingBottom: 250,
           alignItems: "center",
         }}
@@ -200,7 +205,6 @@ export default function WalkEnd() {
         {/* 기록 카드 */}
         <View style={styles.card}>
           <Text style={styles.park}>{parkName}</Text>
-          {/* 🔥 UI 표시도 로컬 날짜로 표시 */}
           <Text style={styles.date}>{localDate}</Text>
 
           <TouchableOpacity style={styles.photoArea} onPress={openImagePicker}>

@@ -20,9 +20,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import AppHeader from "../components/AppHeader";
 import { API_BASE } from "../constants/api";
 
-/*************************************************
- * 1) 타입 선언 (가장 위)
- *************************************************/
 type LatLng = {
   latitude: number;
   longitude: number;
@@ -32,7 +29,7 @@ const { width } = Dimensions.get("window");
 const mainColor = "#789970";
 
 /*************************************************
- * ⭐ AutoModal (팝업 컴포넌트)
+ *  ⭐ AutoModal
  *************************************************/
 const AutoModal = ({ visible, message, onClose }: any) => {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -111,7 +108,7 @@ const AutoModal = ({ visible, message, onClose }: any) => {
 };
 
 /*************************************************
- *  ⭐ HealthWalk2 화면
+ * ⭐ HealthWalk2 메인 화면
  *************************************************/
 export default function HealthWalk2() {
   const router = useRouter();
@@ -129,7 +126,6 @@ export default function HealthWalk2() {
 
   const [nearParks, setNearParks] = useState<any[]>([]);
 
-  /* ⭐ 현재 보이는 카드 index */
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useFocusEffect(
@@ -149,21 +145,58 @@ export default function HealthWalk2() {
   }, []);
 
   /*************************************************
-   *  GPS
+   * ⭐ GPS 빠른 로딩 적용
    *************************************************/
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | undefined;
+
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") return;
 
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
+      // ⚡ 매우 빠른 첫 위치 (Low accuracy)
+      const fast = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Low,
       });
 
+      const first = {
+        latitude: fast.coords.latitude,
+        longitude: fast.coords.longitude,
+      };
+
+      setUserLocation(first);
       setLoading(false);
+
+      mapRef.current?.animateToRegion({
+        ...first,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+
+      // ⏳ 1.5초 뒤 고정밀 보정
+      timeoutId = setTimeout(async () => {
+        const high = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.BestForNavigation,
+        });
+
+        const better = {
+          latitude: high.coords.latitude,
+          longitude: high.coords.longitude,
+        };
+
+        setUserLocation(better);
+
+        mapRef.current?.animateToRegion({
+          ...better,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }, 1500);
     })();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   /*************************************************
@@ -189,19 +222,44 @@ export default function HealthWalk2() {
   }, [userLocation]);
 
   /*************************************************
-   * ⭐ 도보 시간 계산
+   * 카드 스크롤 감지
    *************************************************/
+  const onViewableItemsChanged = useRef(
+    (info: { viewableItems: ViewToken[] }) => {
+      if (info.viewableItems.length > 0) {
+        const idx = info.viewableItems[0].index;
+        if (idx !== null && idx !== undefined) setCurrentIndex(idx);
+      }
+    }
+  );
+
+  const viewabilityConfig = { viewAreaCoveragePercentThreshold: 60 };
+
+  /*************************************************
+   * 카드 변경 → 지도 이동
+   *************************************************/
+  useEffect(() => {
+    if (!nearParks.length) return;
+
+    const park = nearParks[currentIndex];
+    if (!park) return;
+
+    mapRef.current?.animateCamera(
+      {
+        center: { latitude: park.lat, longitude: park.lng },
+        zoom: 16,
+      },
+      { duration: 500 }
+    );
+  }, [currentIndex]);
+
   const getWalkMinutes = (distanceKm: number) => {
     const meters = distanceKm * 1000;
     return Math.max(1, Math.round(meters / 28));
   };
 
-  /*************************************************
-   * ⭐ 추천 팝업 열기
-   *************************************************/
   const openPopup = () => {
     if (!user) return;
-
     const h = user.height / 100;
     const bmi = user.weight / (h * h);
 
@@ -227,9 +285,6 @@ export default function HealthWalk2() {
     setPopupVisible(true);
   };
 
-  /*************************************************
-   * ⭐ 팝업 확인 → TrackingWalk 이동
-   *************************************************/
   const goTracking = () => {
     if (!selectedPark) return;
 
@@ -244,45 +299,8 @@ export default function HealthWalk2() {
     });
   };
 
-  /*************************************************
-   * ⭐ 카드 슬라이드 감지
-   *************************************************/
-  const onViewableItemsChanged = useRef(
-    (info: { viewableItems: ViewToken[] }) => {
-      if (info.viewableItems.length > 0) {
-        const idx = info.viewableItems[0].index;
-        if (idx !== null && idx !== undefined) {
-          setCurrentIndex(idx);
-        }
-      }
-    }
-  );
+  /* ====================================== */
 
-  const viewabilityConfig = { viewAreaCoveragePercentThreshold: 60 };
-
-  /*************************************************
-   * ⭐ currentIndex 바뀌면 지도 이동
-   *************************************************/
-  useEffect(() => {
-    if (!nearParks || nearParks.length === 0) return;
-
-    const park = nearParks[currentIndex];
-    if (!park) return;
-
-    mapRef.current?.animateCamera(
-      {
-        center: { latitude: park.lat, longitude: park.lng },
-        zoom: 16,
-      },
-      { duration: 500 }
-    );
-  }, [currentIndex]);
-
-  const currentPark = nearParks[currentIndex];
-
-  /*************************************************
-   *  UI 렌더링
-   *************************************************/
   if (loading || !userLocation) {
     return (
       <View style={styles.loadingArea}>
@@ -290,6 +308,8 @@ export default function HealthWalk2() {
       </View>
     );
   }
+
+  const currentPark = nearParks[currentIndex];
 
   return (
     <View style={styles.container}>
@@ -300,7 +320,6 @@ export default function HealthWalk2() {
         onRightPress={() => router.push("/healthwalk")}
       />
 
-      {/* 지도 */}
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -314,7 +333,6 @@ export default function HealthWalk2() {
       >
         <Marker coordinate={userLocation} pinColor="green" />
 
-        {/* ⭐ 카드 슬라이드에 따라 이동하는 공원 핀 */}
         {currentPark && (
           <Marker
             coordinate={{ latitude: currentPark.lat, longitude: currentPark.lng }}
@@ -323,7 +341,6 @@ export default function HealthWalk2() {
         )}
       </MapView>
 
-      {/* 내 위치 버튼 */}
       <TouchableOpacity
         style={styles.locateBtn}
         onPress={() =>
@@ -338,7 +355,6 @@ export default function HealthWalk2() {
         <Image source={require("../assets/images/locate.png")} style={{ width: 50, height: 50 }} />
       </TouchableOpacity>
 
-      {/* 공원 카드 */}
       <View style={styles.cardSlider}>
         <FlatList
           data={nearParks}
@@ -377,7 +393,6 @@ export default function HealthWalk2() {
         />
       </View>
 
-      {/* 팝업 */}
       <AutoModal visible={popupVisible} message={popupMessage} onClose={goTracking} />
     </View>
   );
@@ -386,7 +401,6 @@ export default function HealthWalk2() {
 /*************************************************
  * styles (기존 그대로)
  *************************************************/
-
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

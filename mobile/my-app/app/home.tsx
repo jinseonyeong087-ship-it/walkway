@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     top: 150,
     left: 24,
     fontSize: 22,
-    fontFamily: "NanumBarunGothic",
+    fontFamily: "NanumBarun",
     color: "#333",
     lineHeight: 32,
   },
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 16,
-    fontFamily: "NanumBarunGothicBold",
+    fontFamily: "NanumBarunBold",
   },
 
   scrollIcon: {
