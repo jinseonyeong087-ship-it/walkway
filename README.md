@@ -36,9 +36,11 @@
 - 운동 강도에 따른 개인 맞춤형 피드백
 - 산책 기록 데이터 축적 및 분석
 
+<p align="center">
 <img src="img/Group 20.png" width="200" alt="WalkWay home">
 <img src="img/Group 21.png" width="200" alt="WalkWay map">
 <img src="img/Group 23.png" width="200" alt="WalkWay map road">
+</p>
 
 ## Tech Stack
 
